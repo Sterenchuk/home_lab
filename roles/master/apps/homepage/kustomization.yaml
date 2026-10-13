@@ -9,3 +9,4 @@ configMapGenerator:
     files:
       - config/settings.yaml
       - config/services.yaml
+      - config/bookmarks.yaml
