@@ -1,0 +1,11 @@
+namespace: homepage
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+configMapGenerator:
+  - name: homepage
+    files:
+      - config/settings.yaml
+      - config/services.yaml

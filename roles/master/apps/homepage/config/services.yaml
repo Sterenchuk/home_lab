@@ -1,0 +1,10 @@
+- Lab:
+    - Homepage:
+        href: https://home.sansesdevelopment.uk
+        description: This dashboard
+        icon: homepage
+
+    - Uptime Kuma:
+        href: https://kuma.sansesdevelopment.uk
+        description: Is everything up?
+        icon: uptime-kuma
