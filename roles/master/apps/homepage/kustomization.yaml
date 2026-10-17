@@ -1,5 +1,6 @@
 namespace: homepage
 resources:
+  - rbac.yaml
   - namespace.yaml
   - deployment.yaml
   - service.yaml
@@ -10,3 +11,9 @@ configMapGenerator:
       - config/settings.yaml
       - config/services.yaml
       - config/bookmarks.yaml
+      - config/widgets.yaml
+      - config/docker.yaml
+      - config/kubernetes.yaml
+      - config/custom.css
+      - config/custom.js
+      - config/proxmox.yaml
