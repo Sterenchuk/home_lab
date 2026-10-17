@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: homepage
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: homepage
@@ -12,6 +12,8 @@ spec:
       labels:
         app: homepage
     spec:
+      serviceAccountName: homepage
+      enableServiceLinks: false
       containers:
         - name: homepage
           image: ghcr.io/gethomepage/homepage:latest
