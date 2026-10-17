@@ -8,3 +8,13 @@
         href: https://kuma.sansesdevelopment.uk
         description: Is everything up?
         icon: uptime-kuma
+
+    - File storage:
+        href: https://nextcloud.sansesdevelopment.uk
+        description: Files for Family
+        icon: nextcloud
+
+    - Home AI:
+        href: https://ai.sansesdevelopment.uk
+        description: Slow ass AI
+        icon: ollama
