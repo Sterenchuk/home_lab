@@ -47,8 +47,10 @@ spec:
             - name: TRUSTED_PROXIES
               value: 10.42.0.0/16
           volumeMounts:
-            - name: data
+            - name: html
               mountPath: /var/www/html
+            - name: data
+              mountPath: /var/www/html/data
           readinessProbe:
             httpGet:
               path: /status.php
@@ -67,3 +69,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: nextcloud-data
+        - name: html
+          persistentVolumeClaim:
+            claimName: nextcloud-html
