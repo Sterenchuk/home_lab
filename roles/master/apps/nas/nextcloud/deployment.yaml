@@ -16,7 +16,7 @@ spec:
         app: nextcloud
     spec:
       nodeSelector:
-        role: nas
+        kubernetes.io/hostname: zotac
       containers:
         - name: nextcloud
           image: nextcloud:32-apache # pin a major version; use the current stable major
@@ -64,7 +64,7 @@ spec:
             requests:
               memory: 256Mi
             limits:
-              memory: 1Gi
+              memory: 2Gi
       volumes:
         - name: data
           persistentVolumeClaim:
