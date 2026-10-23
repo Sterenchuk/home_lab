@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: reminder
+  namespace: reminder
+
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app: reminder
+  template:
+    metadata:
+      labels:
+        app: reminder
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: reminder
+          image: sanses500/reminder-bot:latest
+          imagePullPolicy: Always
+          ports:
+            - name: health
+              containerPort: 8000
+          env:
+            - name: BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: reminder-secret
+                  key: BOT_TOKEN
+            - name: TIMEZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: reminder-config
+                  key: TIMEZONE
+            - name: TICK_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: reminder-config
+                  key: TICK_SECONDS
+            - name: ALLOWED_CHAT_IDS
+              valueFrom:
+                secretKeyRef:
+                  name: reminder-secret
+                  key: ALLOWED_CHAT_IDS
+          resources:
+            requests:
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: reminder-data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: reminder-data
+          persistentVolumeClaim:
+            claimName: reminder-data
