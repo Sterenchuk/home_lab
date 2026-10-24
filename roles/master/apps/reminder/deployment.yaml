@@ -19,7 +19,7 @@ spec:
         app: reminder
     spec:
       nodeSelector:
-        kubernetes.io/hostname: l590
+        kubernetes.io/hostname: zotac
       tolerations:
         - operator: Exists
           effect: NoSchedule
@@ -45,6 +45,9 @@ spec:
                 configMapKeyRef:
                   name: reminder-config
                   key: TIMEZONE
+
+            - name: DB_PATH
+              value: /data/reminders.db
 
             - name: TICK_SECONDS
               valueFrom:
