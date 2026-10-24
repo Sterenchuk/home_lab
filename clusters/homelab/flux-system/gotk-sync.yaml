@@ -22,6 +22,10 @@ spec:
   interval: 10m0s
   path: ./clusters/homelab
   prune: true
+  postBuild:
+    substituteFrom:
+      - kind: Secret
+        name: flux-notification-config
   sourceRef:
     kind: GitRepository
     name: flux-system

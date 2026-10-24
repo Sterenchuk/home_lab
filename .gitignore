@@ -4,3 +4,4 @@
 .aws/
 *_token*
 master_server
+secret.yaml
