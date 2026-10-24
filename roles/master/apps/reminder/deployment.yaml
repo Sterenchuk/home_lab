@@ -19,31 +19,39 @@ spec:
         app: reminder
     spec:
       nodeSelector:
-        kubernetes.io/hostname: zotac
+        kubernetes.io/hostname: l590
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
       enableServiceLinks: false
       containers:
         - name: reminder
           image: sanses500/reminder-bot:build-0-sha-0000000000000000000000000000000000000000 # {"$imagepolicy": "flux-system:reminder-bot"}
           imagePullPolicy: Always
+
           ports:
             - name: health
               containerPort: 8000
+
           env:
             - name: BOT_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: reminder-secret
                   key: BOT_TOKEN
+
             - name: TIMEZONE
               valueFrom:
                 configMapKeyRef:
                   name: reminder-config
                   key: TIMEZONE
+
             - name: TICK_SECONDS
               valueFrom:
                 configMapKeyRef:
                   name: reminder-config
                   key: TICK_SECONDS
+
             - name: ALLOWED_CHAT_IDS
               valueFrom:
                 secretKeyRef:
@@ -54,7 +62,7 @@ spec:
             requests:
               memory: 64Mi
             limits:
-              memory: 256Mi
+              memory: 250Mi
           volumeMounts:
             - name: reminder-data
               mountPath: /data
