@@ -51,6 +51,10 @@ spec:
               mountPath: /var/www/html
             - name: data
               mountPath: /var/www/html/data
+            - name: apache-mpm
+              mountPath: /etc/apache2/mods-available/mpm_prefork.conf
+              subPath: mpm_prefork.conf
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /status.php
@@ -66,6 +70,9 @@ spec:
             limits:
               memory: 4Gi
       volumes:
+        - name: apache-mpm
+          configMap:
+            name: nextcloud-apache-mpm
         - name: data
           persistentVolumeClaim:
             claimName: nextcloud-data

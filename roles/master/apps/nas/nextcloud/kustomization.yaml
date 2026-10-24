@@ -4,5 +4,6 @@ resources:
   - namespace.yaml
   - secret.yaml
   - pvc.yaml
+  - apache-mpm.yaml
   - deployment.yaml
   - service.yaml
