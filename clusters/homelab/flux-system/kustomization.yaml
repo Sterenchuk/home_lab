@@ -6,7 +6,3 @@ resources:
 - reminder.yaml
 - reminder-images.yaml
 - notifications.yaml
-postBuild:
-  substituteFrom:
-    - kind: Secret
-      name: flux-notification-config
