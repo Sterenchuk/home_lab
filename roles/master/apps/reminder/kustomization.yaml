@@ -6,3 +6,4 @@ resources:
   - configMap.yaml
   - storage.yaml
   - deployment.yaml
+  - service.yaml

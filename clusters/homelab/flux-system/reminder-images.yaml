@@ -1,0 +1,48 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: reminder-bot
+  namespace: flux-system
+spec:
+  image: sanses500/reminder-bot
+  interval: 1m
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: reminder-bot
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: reminder-bot
+  filterTags:
+    pattern: '^build-(?P<run>[0-9]+)-sha-[a-f0-9]{40}$'
+    extract: '$run'
+  policy:
+    numerical:
+      order: asc
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: reminder-bot
+  namespace: flux-system
+spec:
+  interval: 1m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: fluxcdbot
+        email: fluxcdbot@users.noreply.github.com
+      messageTemplate: 'Update reminder-bot image to {{ .Changed }}'
+    push:
+      branch: main
+  update:
+    path: ./roles/master/apps/reminder
+    strategy: Setters
