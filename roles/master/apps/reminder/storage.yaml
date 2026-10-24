@@ -4,6 +4,7 @@ metadata:
   name: reminder-data
   namespace: reminder
 spec:
+  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:
