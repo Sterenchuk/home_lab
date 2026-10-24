@@ -1,0 +1,5 @@
+spec:
+  source:
+    repoURL: git@github.com:Sterenchuk/home_lab.git
+    targetRevision: main
+    path: roles/master/gitops/applications
