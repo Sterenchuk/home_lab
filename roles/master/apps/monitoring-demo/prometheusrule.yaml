@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: monitoring-demo-alerts
+  namespace: monitoring-demo
+spec:
+  groups:
+    - name: monitoring-demo
+      rules:
+        - alert: MonitoringDemoErrorsRising
+          expr: increase(demo_errors_total[5m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Monitoring demo error counter increased"
+            description: "{{ $value }} new errors in the last 5 minutes."

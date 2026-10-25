@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-demo-app
+  namespace: monitoring-demo
+data:
+  app.py: |
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    from threading import Lock
+
+    errors = 0
+    lock = Lock()
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/metrics":
+                with lock:
+                    value = errors
+                body = (
+                    "# HELP demo_errors_total Total errors deliberately generated for alert testing.\n"
+                    "# TYPE demo_errors_total counter\n"
+                    f"demo_errors_total {value}\n"
+                )
+                self.respond(200, body, "text/plain; version=0.0.4")
+            elif self.path == "/health":
+                self.respond(200, "ok\n")
+            else:
+                self.respond(404, "not found\n")
+
+        def do_POST(self):
+            global errors
+            if self.path != "/cause-error":
+                self.respond(404, "not found\n")
+                return
+            with lock:
+                errors += 1
+            self.respond(202, "error counter incremented\n")
+
+        def respond(self, status, body, content_type="text/plain"):
+            data = body.encode()
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def log_message(self, *_args):
+            pass
+
+    HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring-demo
+  namespace: monitoring-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monitoring-demo
+  template:
+    metadata:
+      labels:
+        app: monitoring-demo
+    spec:
+      containers:
+        - name: metrics-demo
+          image: python:3.12-alpine
+          command: ["python", "/app/app.py"]
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: 10m
+              memory: 24Mi
+            limits:
+              memory: 64Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: metrics-demo-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitoring-demo
+  namespace: monitoring-demo
+  labels:
+    app: monitoring-demo
+spec:
+  selector:
+    app: monitoring-demo
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
