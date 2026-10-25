@@ -4,7 +4,19 @@ resources:
 - gotk-components.yaml
 - gotk-sync.yaml
 - reminder.yaml
-- reminder-images.yaml
 - monitoring.yaml
 - monitoring-demo.yaml
 - notifications.yaml
+patches:
+  - target:
+      kind: Kustomization
+      name: flux-system
+    patch: |
+      - op: add
+        path: /spec/postBuild
+        value:
+          substitute:
+            quote: '"'
+          substituteFrom:
+            - kind: Secret
+              name: flux-notification-config
