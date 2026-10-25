@@ -23,6 +23,8 @@ spec:
   path: ./clusters/homelab
   prune: true
   postBuild:
+    substitute:
+      quote: '"'
     substituteFrom:
       - kind: Secret
         name: flux-notification-config
