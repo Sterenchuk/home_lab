@@ -8,7 +8,7 @@ spec:
   path: ./roles/master/apps/monitoring
   prune: true
   wait: true
-  timeout: 10m
+  timeout: 25m
   postBuild:
     substituteFrom:
       - kind: Secret
