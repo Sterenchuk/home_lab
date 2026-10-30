@@ -18,3 +18,72 @@
         href: https://ai.sansesdevelopment.uk
         description: Slow ass AI
         icon: ollama
+
+    - Grafana:
+        href: https://grafana.sansesdevelopment.uk/dashboards
+        description: Server and Kubernetes graphs
+        icon: grafana
+
+# Host metrics come from the existing monitoring stack, through Homepage
+# server-side requests. No Prometheus ingress or API credentials are needed.
+- Servers:
+    - CPU usage:
+        icon: mdi-cpu-64-bit
+        href: https://grafana.sansesdevelopment.uk/dashboards
+        description: Busy CPU over the last 5 minutes
+        widget:
+          type: customapi
+          # PromQL: 100 * (1 - avg by (node) (rate(node_cpu_seconds_total{job="node-exporter",node!="",mode="idle"}[5m])))
+          url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/query?query=100%20%2A%20%281%20-%20avg%20by%20%28node%29%20%28rate%28node_cpu_seconds_total%7Bjob%3D%22node-exporter%22%2Cnode%21%3D%22%22%2Cmode%3D%22idle%22%7D%5B5m%5D%29%29%29
+          refreshInterval: 30000
+          display: dynamic-list
+          mappings:
+            items: data.result
+            name: metric.node
+            label: value.1
+            format: percent
+    - RAM usage:
+        icon: mdi-memory
+        href: https://grafana.sansesdevelopment.uk/dashboards
+        description: Used memory excluding reclaimable cache
+        widget:
+          type: customapi
+          # PromQL: 100 * (1 - max by (node) (node_memory_MemAvailable_bytes{job="node-exporter",node!=""}) / max by (node) (node_memory_MemTotal_bytes{job="node-exporter",node!=""}))
+          url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/query?query=100%20%2A%20%281%20-%20max%20by%20%28node%29%20%28node_memory_MemAvailable_bytes%7Bjob%3D%22node-exporter%22%2Cnode%21%3D%22%22%7D%29%20%2F%20max%20by%20%28node%29%20%28node_memory_MemTotal_bytes%7Bjob%3D%22node-exporter%22%2Cnode%21%3D%22%22%7D%29%29
+          refreshInterval: 30000
+          display: dynamic-list
+          mappings:
+            items: data.result
+            name: metric.node
+            label: value.1
+            format: percent
+    - Temperature (°C):
+        icon: mdi-thermometer
+        href: https://grafana.sansesdevelopment.uk/dashboards
+        description: Hottest reported sensor; requires hardware support
+        widget:
+          type: customapi
+          # PromQL: max by (node) (node_hwmon_temp_celsius{job="node-exporter",node!=""}) or max by (node) (node_thermal_zone_temp{job="node-exporter",node!=""})
+          url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/query?query=max%20by%20%28node%29%20%28node_hwmon_temp_celsius%7Bjob%3D%22node-exporter%22%2Cnode%21%3D%22%22%7D%29%20or%20max%20by%20%28node%29%20%28node_thermal_zone_temp%7Bjob%3D%22node-exporter%22%2Cnode%21%3D%22%22%7D%29
+          refreshInterval: 30000
+          display: dynamic-list
+          mappings:
+            items: data.result
+            name: metric.node
+            label: value.1
+            format: float
+    - Available storage:
+        icon: mdi-harddisk
+        href: https://grafana.sansesdevelopment.uk/dashboards
+        description: Free space per server and mounted filesystem
+        widget:
+          type: customapi
+          # PromQL: label_join(max by (node, mountpoint) (node_filesystem_avail_bytes{job="node-exporter",node!="",fstype!~"tmpfs|devtmpfs|overlay|squashfs|ramfs|nsfs",mountpoint!~"/var/lib/kubelet/.*|/run/.*"}), "volume", " · ", "node", "mountpoint")
+          url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/query?query=label_join%28max%20by%20%28node%2C%20mountpoint%29%20%28node_filesystem_avail_bytes%7Bjob%3D%22node-exporter%22%2Cnode%21%3D%22%22%2Cfstype%21~%22tmpfs%7Cdevtmpfs%7Coverlay%7Csquashfs%7Cramfs%7Cnsfs%22%2Cmountpoint%21~%22%2Fvar%2Flib%2Fkubelet%2F.%2A%7C%2Frun%2F.%2A%22%7D%29%2C%20%22volume%22%2C%20%22%20%C2%B7%20%22%2C%20%22node%22%2C%20%22mountpoint%22%29
+          refreshInterval: 30000
+          display: dynamic-list
+          mappings:
+            items: data.result
+            name: metric.volume
+            label: value.1
+            format: bytes

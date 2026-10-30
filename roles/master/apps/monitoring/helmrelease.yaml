@@ -41,10 +41,25 @@ spec:
                 requests:
                   storage: 5Gi
     grafana:
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        hosts:
+          - grafana.sansesdevelopment.uk
+      grafana.ini:
+        server:
+          root_url: https://grafana.sansesdevelopment.uk
       admin:
         existingSecret: grafana-admin
         userKey: admin-user
         passwordKey: admin-password
+    # Attach stable Kubernetes node names to host metrics for Homepage.
+    prometheus-node-exporter:
+      prometheus:
+        monitor:
+          relabelings:
+            - sourceLabels: [__meta_kubernetes_pod_node_name]
+              targetLabel: node
     alertmanager:
       config:
         route:
