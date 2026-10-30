@@ -24,7 +24,7 @@ spec:
                     app: cloudflared
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:latest   # pin a version later
+          image: cloudflare/cloudflared:2026.10.5   # pin a version later
           args: ["tunnel", "--no-autoupdate", "run"]
           env:
             - name: TUNNEL_TOKEN
@@ -32,6 +32,8 @@ spec:
                 secretKeyRef:
                   name: tunnel-token
                   key: token
+            - name: TUNNEL_TRANSPORT_PROTOCOL
+              value: http2          
           resources:
             requests: {cpu: 20m, memory: 32Mi}
             limits: {memory: 128Mi}
