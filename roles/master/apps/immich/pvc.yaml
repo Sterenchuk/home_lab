@@ -19,8 +19,7 @@ metadata:
   namespace: immich
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: nas-nfs-immich
-  volumeName: immich-media-pv
+  storageClassName: local-path
   resources:
     requests:
       storage: 600Gi

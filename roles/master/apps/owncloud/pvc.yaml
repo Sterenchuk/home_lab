@@ -11,17 +11,15 @@ spec:
   hostPath:
     path: /mnt/nas/owncloud-docs
     type: DirectoryOrCreate
-
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: owncloud-data
+  name: owncloud-docs-data
   namespace: owncloud
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: nas-nfs
-  volumeName: owncloud-pv
+  storageClassName: local-path
   resources:
     requests:
       storage: 200Gi
