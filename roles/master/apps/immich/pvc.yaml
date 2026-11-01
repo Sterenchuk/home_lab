@@ -7,10 +7,13 @@ spec:
     storage: 600Gi
   accessModes: [ReadWriteOnce]
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-path
-  hostPath:
+  storageClassName: nas-nfs-immich
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+  nfs:
+    server: 100.99.212.60
     path: /mnt/nas/immich-photos
-    type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -19,7 +22,8 @@ metadata:
   namespace: immich
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: local-path
+  storageClassName: nas-nfs-immich
+  volumeName: immich-media-pv
   resources:
     requests:
       storage: 600Gi
