@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: owncloud
+  namespace: owncloud
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: owncloud
+  template:
+    metadata:
+      labels:
+        app: owncloud
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: macbook
+      containers:
+        - name: owncloud
+          image: owncloud/server:11.0.1
+          ports:
+            - containerPort: 8080
+          env:
+          - name: OWNCLOUD_DOMAIN
+            value: 'owncloud.sansesdevelopment.uk'
+          - name: OWNCLOUD_DB_TYPE
+            value: 'pgsql'
+          - name: OWNCLOUD_DB_HOST
+            value: 'postgres.database.svc.cluster.local'
+          - name: OWNCLOUD_DB_NAME
+            value: 'owncloud'
+          - name: OWNCLOUD_DB_USERNAME
+            value: 'owncloud'
+          - name: OWNCLOUD_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: owncloud-secret
+                key: POSTGRES_PASSWORD
+          - name: OWNCLOUD_ADMIN_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: owncloud-secret
+                key: OWNCLOUD_ADMIN_USER
+          - name: OWNCLOUD_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: owncloud-secret
+                key: OWNCLOUD_ADMIN_PASSWORD
+          volumeMounts:
+            - name: docs-storage
+              mountPath: /mnt/data
+          resources:
+            requests:
+              memory: 512Mi
+            limits:
+              memory: 4Gi
+      volumes:
+        - name: docs-storage
+          persistentVolumeClaim:
+            claimName: owncloud-data
