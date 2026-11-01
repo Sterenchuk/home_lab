@@ -15,7 +15,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: owncloud-docs-data
+  name: owncloud-data
   namespace: owncloud
 spec:
   accessModes: [ReadWriteOnce]
