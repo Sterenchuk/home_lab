@@ -23,37 +23,37 @@ spec:
           ports:
             - containerPort: 8080
           env:
-          - name: OWNCLOUD_DOMAIN
-            value: 'owncloud.sansesdevelopment.uk'
-          - name: OWNCLOUD_DB_TYPE
-            value: 'pgsql'
-          - name: OWNCLOUD_DB_HOST
-            value: 'postgres.database.svc.cluster.local'
-          - name: OWNCLOUD_DB_NAME
-            value: 'owncloud'
-          - name: OWNCLOUD_DB_USERNAME
-            value: 'owncloud'
-          - name: OWNCLOUD_DB_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: owncloud-secret
-                key: POSTGRES_PASSWORD
-          - name: OWNCLOUD_ADMIN_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: owncloud-secret
-                key: OWNCLOUD_ADMIN_USER
-          - name: OWNCLOUD_ADMIN_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: owncloud-secret
-                key: OWNCLOUD_ADMIN_PASSWORD
+            - name: OWNCLOUD_DOMAIN
+              value: 'owncloud.sansesdevelopment.uk'
+            - name: OWNCLOUD_DB_TYPE
+              value: 'pgsql'
+            - name: OWNCLOUD_DB_HOST
+              value: 'postgres.database.svc.cluster.local'
+            - name: OWNCLOUD_DB_NAME
+              value: 'owncloud'
+            - name: OWNCLOUD_DB_USERNAME
+              value: 'owncloud'
+            - name: OWNCLOUD_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: owncloud-secret
+                  key: POSTGRES_PASSWORD
+            - name: OWNCLOUD_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: owncloud-secret
+                  key: OWNCLOUD_ADMIN_USER
+            - name: OWNCLOUD_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: owncloud-secret
+                  key: OWNCLOUD_ADMIN_PASSWORD
           volumeMounts:
             - name: docs-storage
               mountPath: /mnt/data
           resources:
             requests:
-              memory: 512Mi
+              memory: 1Gi
             limits:
               memory: 4Gi
       volumes:
