@@ -14,5 +14,6 @@ spec:
             backend:
               service:
                 name: immich-server
-                port:
-                  number: 3001
+                port: 3001
+                targetPort: 2283
+                protocol: TCP
