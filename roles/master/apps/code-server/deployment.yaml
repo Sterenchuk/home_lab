@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-server
+  namespace: code-server
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: code-server
+
+    template:
+      metadata:
+        labels:
+          app: code-server
+      spec:
+        nodeSelector:
+          kubernetes.io/hostname: l590
+        securityContext:
+          runAsUser: 1000
+          fsGroup: 1000
+        strategy:
+          type: Recreate
+        containers:
+          - name: code-server
+            image: codercom/code-server:4.144.0
+            ports:
+              - containerPort: 8080
+            env:
+              - name: PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: code-server-secrets
+                    key: PASSWORD
+            volumeMounts:
+              - name: code-data
+                mountPath: /home/coder
+            resources:
+              requests:
+                memory: 512Mi
+                cpu: 500m
+              limits:
+                memory: 2Gi
+        volumes:
+          - name: code-data
+            persistentVolumeClaim:
+              claimName: code-server-pvc
