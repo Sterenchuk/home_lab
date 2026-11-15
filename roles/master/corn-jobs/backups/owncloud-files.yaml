@@ -1,0 +1,97 @@
+# ownCloud files -> zotac:/mnt/backup-files/owncloud
+#
+# Daily snapshots using rsync --link-dest: every snapshot looks like a full copy,
+# but unchanged files are hard links, so 14 snapshots take roughly the data size
+# + whatever changed. A document deleted by accident stays in older snapshots for 14 days.
+#
+# Runs at 03:30, after the main DB dump (03:00, includes the owncloud DB):
+# DB first, then files.
+#
+# BEFORE APPLYING:
+#   on zotac:   sudo apt install -y nfs-common        (kubelet on zotac must be able to mount NFS)
+#               sudo mkdir -p /mnt/backup-files/owncloud
+#               sudo touch /mnt/backup-files/.mounted
+#   on macbook: make sure /etc/exports allows zotac (100.83.17.120) for /mnt/nas/owncloud-docs
+#
+# The NFS share is mounted directly (read-only) instead of through the owncloud-data PVC,
+# so the backup can't write to your documents and doesn't fight the RWO claim.
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: owncloud-files-backup
+  namespace: owncloud
+spec:
+  schedule: '30 3 * * *'
+  timeZone: 'Europe/Vienna'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 86400 # first full copy can take hours; reruns resume
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: zotac
+          containers:
+            - name: rsync
+              image: alpine:3
+              env:
+                - name: KEEP_SNAPSHOTS
+                  value: '14'
+              command: ['/bin/sh', '-c']
+              args:
+                - |
+                  set -eu
+                  apk add --no-cache rsync >/dev/null
+
+                  SRC=/data/
+                  DST=/backup/owncloud
+                  SNAP="$DST/snapshots"
+
+                  [ -f /backup/.mounted ] || { echo "backup disk not mounted (no .mounted marker)"; exit 1; }
+                  [ -n "$(ls -A /data 2>/dev/null)" ] || { echo "source is empty - NFS problem? refusing to snapshot"; exit 1; }
+                  mkdir -p "$SNAP"
+
+                  LINK=""
+                  [ -d "$DST/latest" ] && LINK="--link-dest=$DST/latest"
+
+                  # .in-progress is reused, so an interrupted run resumes instead of starting over
+                  set +e
+                  rsync -aH --delete --numeric-ids --stats $LINK \
+                    --exclude 'cache/' --exclude '*/cache/' \
+                    "$SRC" "$SNAP/.in-progress/"
+                  RC=$?
+                  set -e
+                  # 24 = some files vanished during the copy (normal on a live library)
+                  if [ $RC -ne 0 ] && [ $RC -ne 24 ]; then echo "rsync failed: $RC"; exit $RC; fi
+
+                  TS=$(date +%Y-%m-%d_%H%M)
+                  mv "$SNAP/.in-progress" "$SNAP/$TS"
+                  ln -sfn "snapshots/$TS" "$DST/latest"
+
+                  # keep the newest $KEEP_SNAPSHOTS snapshots
+                  ls -1 "$SNAP" | sort -r | tail -n +$((KEEP_SNAPSHOTS + 1)) | while read -r OLD; do
+                    echo "removing old snapshot $OLD"; rm -rf "$SNAP/$OLD"
+                  done
+
+                  ls -1 "$SNAP"; df -h /backup
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                  readOnly: true
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: data
+              nfs:
+                server: 100.99.212.60
+                path: /mnt/nas/owncloud-docs
+                readOnly: true
+            - name: backup
+              hostPath:
+                path: /mnt/backup-files
+                type: Directory
