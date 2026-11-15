@@ -1,0 +1,144 @@
+# Postgres backups -> zotac:/mnt/backup-db/{main,immich}
+#
+# BEFORE APPLYING, on zotac (one time):
+#   sudo mkdir -p /mnt/backup-db/main /mnt/backup-db/immich
+#   sudo touch /mnt/backup-db/.mounted
+# The .mounted marker matters: fstab uses "nofail", so if sdc1 ever fails to mount,
+# /mnt/backup-db is just an empty dir on the root disk. The jobs refuse to run without the marker
+# instead of silently filling "/".
+#
+---
+# ---------- main postgres (namespace: database, postgres:17) ----------
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: database
+spec:
+  schedule: '0 3 * * *'
+  timeZone: 'Europe/Vienna'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: zotac
+          containers:
+            - name: backup
+              image: postgres:17 # keep same as the on server
+              env:
+                - name: PGHOST
+                  value: postgres.database.svc.cluster.local
+                - name: PGPORT
+                  value: '5432'
+                - name: PGUSER
+                  value: postgres
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: POSTGRES_PASSWORD # verified
+                - name: RETENTION_DAYS
+                  value: '14'
+              command: ['/bin/bash', '-c']
+              args:
+                - |
+                  set -euo pipefail
+                  ROOT=/backup
+                  [ -f "$ROOT/.mounted" ] || { echo "backup disk not mounted (no .mounted marker)"; exit 1; }
+                  OUT="$ROOT/main"; TS=$(date +%Y-%m-%d_%H%M)
+                  mkdir -p "$OUT"
+
+                  # roles/passwords (not included in per-db dumps)
+                  pg_dumpall --globals-only | gzip > "$OUT/globals_$TS.sql.gz.partial"
+                  mv "$OUT/globals_$TS.sql.gz.partial" "$OUT/globals_$TS.sql.gz"
+
+                  # every non-template database, custom format (compressed, pg_restore-able)
+                  for DB in $(psql -Atc "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres'"); do
+                    echo "dumping $DB"
+                    pg_dump -Fc -d "$DB" -f "$OUT/${DB}_$TS.dump.partial"
+                    mv "$OUT/${DB}_$TS.dump.partial" "$OUT/${DB}_$TS.dump"
+                  done
+
+                  find "$OUT" -type f \( -name '*.dump' -o -name '*.sql.gz' \) -mtime +"$RETENTION_DAYS" -delete
+                  find "$OUT" -type f -name '*.partial' -mmin +120 -delete
+                  ls -lh "$OUT" | tail -n 10
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              hostPath:
+                path: /mnt/backup-db
+                type: Directory
+---
+# ---------- immich postgres (namespace: immich, PG14 + vectorchord) ----------
+# Uses Immich's own postgres image so pg_dump matches the server (14) and the
+# output restores cleanly into the same image. Format follows Immich's official
+# backup/restore docs (pg_dumpall --clean --if-exists, gzipped).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: immich-postgres-backup
+  namespace: immich
+spec:
+  schedule: '15 3 * * *'
+  timeZone: 'Europe/Vienna'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: zotac
+          containers:
+            - name: backup
+              image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+              env:
+                - name: PGHOST
+                  value: immich-postgres.immich.svc.cluster.local
+                - name: PGPORT
+                  value: '5432'
+                - name: PGUSER
+                  value: postgres # verified
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-secrets
+                      key: DB_PASSWORD # verified
+                - name: RETENTION_DAYS
+                  value: '14'
+              command: ['/bin/bash', '-c']
+              args:
+                - |
+                  set -euo pipefail
+                  ROOT=/backup
+                  [ -f "$ROOT/.mounted" ] || { echo "backup disk not mounted (no .mounted marker)"; exit 1; }
+                  OUT="$ROOT/immich"; TS=$(date +%Y-%m-%d_%H%M)
+                  mkdir -p "$OUT"
+
+                  pg_dumpall --clean --if-exists | gzip > "$OUT/immich_$TS.sql.gz.partial"
+                  mv "$OUT/immich_$TS.sql.gz.partial" "$OUT/immich_$TS.sql.gz"
+
+                  find "$OUT" -type f -name '*.sql.gz' -mtime +"$RETENTION_DAYS" -delete
+                  find "$OUT" -type f -name '*.partial' -mmin +120 -delete
+                  ls -lh "$OUT" | tail -n 10
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              hostPath:
+                path: /mnt/backup-db
+                type: Directory
