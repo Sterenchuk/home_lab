@@ -1,0 +1,69 @@
+# Warning = NOT sent to Telegram. They show up in Grafana (Alerting > Alert rules)
+# and as red markers on the "Homelab Capacity & Limits" dashboard, so you can see
+# WHEN a container hit its limit and decide whether to raise it.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-capacity
+  namespace: monitoring
+spec:
+  groups:
+    - name: homelab-capacity
+      rules:
+        # CPU limit too low: the kernel is pausing the container for >25% of its time slices.
+        - alert: ContainerCPUThrottled
+          expr: |
+            sum by (namespace, pod, container) (rate(container_cpu_cfs_throttled_periods_total{container!=""}[5m]))
+            /
+            sum by (namespace, pod, container) (rate(container_cpu_cfs_periods_total{container!=""}[5m]))
+            > 0.25
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is CPU throttled"
+            description: "Throttled {{ $value | humanizePercentage }} of the time for 15m. Raise the CPU limit or remove it."
+
+        # Memory limit too low: next spike = OOMKill.
+        - alert: ContainerMemoryNearLimit
+          expr: |
+            sum by (namespace, pod, container) (container_memory_working_set_bytes{container!=""})
+            /
+            sum by (namespace, pod, container) (kube_pod_container_resource_limits{resource="memory"})
+            > 0.90
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) uses {{ $value | humanizePercentage }} of its memory limit"
+            description: "Above 90% of the memory limit for 15m. Raise the limit before it gets OOMKilled."
+
+        # The container was killed for using more memory than its limit.
+        - alert: ContainerOOMKilled
+          expr: |
+            (kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1)
+            and on (namespace, pod, container)
+            (increase(kube_pod_container_status_restarts_total[15m]) > 0)
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) was OOMKilled"
+            description: "The container ran out of its memory limit and was killed. Raise the memory limit."
+
+        # Node is almost fully reserved: new pods will stay Pending.
+        - alert: NodeRequestsNearlyFull
+          expr: |
+            sum by (node, resource) (
+              kube_pod_container_resource_requests{resource=~"cpu|memory"}
+              * on (namespace, pod) group_left ()
+              max by (namespace, pod) (kube_pod_status_phase{phase=~"Running|Pending"} == 1)
+            )
+            /
+            sum by (node, resource) (kube_node_status_allocatable{resource=~"cpu|memory"})
+            > 0.90
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node {{ $labels.node }}: {{ $labels.resource }} requests at {{ $value | humanizePercentage }} of allocatable"
+            description: "New pods asking for {{ $labels.resource }} may not fit on {{ $labels.node }}."

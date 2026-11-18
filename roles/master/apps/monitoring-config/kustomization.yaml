@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - rules/homelab-critical.yaml
+  - rules/homelab-capacity.yaml
+
+# Each JSON becomes a ConfigMap with the grafana_dashboard label.
+# Grafana's sidecar picks it up within ~1 minute; no Grafana restart needed.
+configMapGenerator:
+  - name: dashboard-homelab-overview
+    files:
+      - dashboards/homelab-overview.json
+  - name: dashboard-homelab-capacity
+    files:
+      - dashboards/homelab-capacity.json
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    grafana_dashboard: "1"

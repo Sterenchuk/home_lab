@@ -1,0 +1,73 @@
+# Critical = sent to Telegram (see alertmanager route in the HelmRelease).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-critical
+  namespace: monitoring
+spec:
+  groups:
+    - name: homelab-critical
+      rules:
+        - alert: NodeDown
+          expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node {{ $labels.node }} is down"
+            description: "Node {{ $labels.node }} has been NotReady for more than 5 minutes."
+
+        - alert: NodePressure
+          expr: kube_node_status_condition{condition=~"MemoryPressure|DiskPressure|PIDPressure",status="true"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node {{ $labels.node }} has {{ $labels.condition }}"
+            description: "Node {{ $labels.node }} has reported {{ $labels.condition }} for more than 5 minutes. Pods may get evicted."
+
+        - alert: PodDown
+          expr: |
+            sum by (namespace, pod) (kube_pod_status_ready{condition="false"}) > 0
+            unless on (namespace, pod) kube_pod_owner{owner_kind="Job"}
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is down"
+            description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has not been Ready for more than 15 minutes."
+
+        - alert: PodStuck
+          expr: |
+            max by (namespace, pod, container, reason) (
+              kube_pod_container_status_waiting_reason{reason=~"CrashLoopBackOff|ImagePullBackOff|ErrImagePull|CreateContainerConfigError"}
+            ) > 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }}: {{ $labels.reason }}"
+            description: "Container {{ $labels.container }} in {{ $labels.namespace }}/{{ $labels.pod }} has been in {{ $labels.reason }} for more than 15 minutes."
+
+        - alert: NodeDiskAlmostFull
+          expr: |
+            (
+              node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|ramfs"}
+              / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|ramfs"}
+            ) < 0.10
+            and node_filesystem_readonly{fstype!~"tmpfs|overlay|squashfs|ramfs"} == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk almost full on {{ $labels.node }} ({{ $labels.mountpoint }})"
+            description: "Only {{ $value | humanizePercentage }} free on {{ $labels.mountpoint }} of node {{ $labels.node }}."
+
+        - alert: ScrapeTargetDown
+          expr: up{job=~"node-exporter|kubelet|kube-state-metrics"} == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Prometheus cannot scrape {{ $labels.job }} on {{ $labels.instance }}"
+            description: "{{ $labels.job }} target {{ $labels.instance }} has been unreachable for 10 minutes. Dashboards for that node will be empty."
