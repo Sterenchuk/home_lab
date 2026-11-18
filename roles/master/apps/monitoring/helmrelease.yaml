@@ -102,7 +102,11 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: l590
       deploymentStrategy:
-        type: Recreate
+        type: RollingUpdate
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
+
       sidecar:
         dashboards:
           provider:
