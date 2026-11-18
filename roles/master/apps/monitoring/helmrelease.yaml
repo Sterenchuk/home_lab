@@ -3,25 +3,58 @@ kind: HelmRelease
 metadata:
   name: kube-prometheus-stack
   namespace: monitoring
+
 spec:
   interval: 30m
   timeout: 20m
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: "92.8.0"
+      version: '92.8.0'
       sourceRef:
         kind: HelmRepository
         name: prometheus-community
         namespace: monitoring
+
   install:
     crds: Create
   upgrade:
     crds: CreateReplace
   values:
+    # Turn off the ~100 default ALERTING rules, keep the RECORDING rules
+    # (Grafana dashboards depend on them). Your own rules live in
+    # roles/master/apps/monitoring-rules.
+    # Check names with: helm show values prometheus-community/kube-prometheus-stack --version 92.8.0 | grep -A40 '^defaultRules:'
+    defaultRules:
+      create: true
+      rules:
+        alertmanager: false
+        configReloaders: false
+        etcd: false
+        general: false
+        kubeApiserverAvailability: false
+        kubeApiserverBurnrate: false
+        kubeApiserverSlos: false
+        kubeControllerManager: false
+        kubeProxy: false
+        kubeSchedulerAlerting: false
+        kubeStateMetrics: false
+        kubernetesApps: false
+        kubernetesResources: false
+        kubernetesStorage: false
+        kubernetesSystem: false
+        network: false
+        nodeExporterAlerting: false
+        prometheus: false
+        prometheusOperator: false
+        windows: false
+
     prometheus:
       prometheusSpec:
-        retention: 3d
+        # 7 days of history = "uptime over the last week" on the guest page.
+        # retentionSize is the safety net so the 5Gi disk never fills.
+        retention: 7d
+        retentionSize: 4GB
         serviceMonitorSelectorNilUsesHelmValues: false
         podMonitorSelectorNilUsesHelmValues: false
         ruleSelectorNilUsesHelmValues: false
@@ -40,6 +73,7 @@ spec:
               resources:
                 requests:
                   storage: 5Gi
+
     grafana:
       ingress:
         enabled: true
@@ -49,10 +83,33 @@ spec:
       grafana.ini:
         server:
           root_url: https://grafana.sansesdevelopment.uk
+        # "Share externally" (formerly public dashboards) for the guest page.
+        public_dashboards:
+          enabled: true
+        # Logged-in landing page = the overview dashboard.
+        dashboards:
+          default_home_dashboard_path: /tmp/dashboards/homelab-overview.json
       admin:
         existingSecret: grafana-admin
         userKey: admin-user
         passwordKey: admin-password
+      # Without this, everything made in the UI (dashboards, the public share link,
+      # users) is lost every time the Grafana pod restarts.
+      persistence:
+        enabled: true
+        storageClassName: local-path
+        size: 1Gi
+      nodeSelector:
+        kubernetes.io/hostname: l590
+      deploymentStrategy:
+        type: Recreate
+      sidecar:
+        dashboards:
+          provider:
+            # Lets you tweak the git-provisioned dashboards in the UI.
+            # Export the JSON back into git when you like the result.
+            allowUiUpdates: true
+
     # Attach stable Kubernetes node names to host metrics for Homepage.
     prometheus-node-exporter:
       prometheus:
@@ -60,21 +117,31 @@ spec:
           relabelings:
             - sourceLabels: [__meta_kubernetes_pod_node_name]
               targetLabel: node
+
     alertmanager:
       config:
         route:
-          receiver: telegram
-          group_by:
-            - alertname
+          # Anything that is not critical goes nowhere.
+          receiver: 'null'
+          group_by: [alertname, namespace]
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 12h
+          routes:
+            - receiver: telegram
+              matchers:
+                - severity = "critical"
         receivers:
-          - name: "null"
+          - name: 'null'
           - name: telegram
             telegram_configs:
               - bot_token_file: /etc/alertmanager/secrets/alertmanager-telegram/token
                 chat_id: ${TELEGRAM_CHAT_ID}
+                send_resolved: true
       alertmanagerSpec:
         secrets:
           - alertmanager-telegram
+
     kubeEtcd:
       enabled: false
     kubeControllerManager:
