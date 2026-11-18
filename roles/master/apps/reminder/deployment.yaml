@@ -23,8 +23,9 @@ spec:
       enableServiceLinks: false
       containers:
         - name: reminder
-          image: sanses500/reminder-bot:build-16-sha-522a8e24fd9b39a8cbdbef01e6e13d244cd07a54 # {"$imagepolicy": "flux-system:reminder-bot"}
-          imagePullPolicy: Always
+          image: sanses500/reminder-bot:latest # {"$imagepolicy": "flux-system:reminder-bot"}
+          imagePullPolicy: IfNotPresent
+
           ports:
             - name: health
               containerPort: 8000
