@@ -6,6 +6,8 @@ metadata:
 spec:
   image: sanses500/reminder-bot
   interval: 5m
+  secretRef:
+    name: dockerhub
 ---
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImagePolicy
