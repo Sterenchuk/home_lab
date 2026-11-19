@@ -24,6 +24,8 @@ spec:
         - operator: Exists
           effect: NoSchedule
       enableServiceLinks: false
+      imagePullSecrets:
+        - name: dockerhub
       containers:
         - name: reminder
           image: sanses500/reminder-bot:latest # {"$imagepolicy": "flux-system:reminder-bot"}
