@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   image: sanses500/reminder-bot
-  interval: 1m
+  interval: 5m
   secretRef:
     name: dockerhub
 ---
