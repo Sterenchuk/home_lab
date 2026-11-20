@@ -1,16 +1,18 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: monitoring-config
+  name: monitoring
   namespace: flux-system
 spec:
   interval: 10m
-  path: ./roles/master/apps/monitoring-config
+  path: ./roles/master/monitoring
   prune: true
   wait: true
-  timeout: 3m
-  dependsOn:
-    - name: monitoring
+  timeout: 25m
+  postBuild:
+    substituteFrom:
+      - kind: Secret
+        name: monitoring-notification-config
   sourceRef:
     kind: GitRepository
     name: flux-system

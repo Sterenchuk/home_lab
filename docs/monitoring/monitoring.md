@@ -51,7 +51,7 @@ configuration by the monitoring Flux Kustomization.
   This ordering matters because the stack installs the ServiceMonitor and
   PrometheusRule CRDs that the demo manifests use.
 
-### `roles/master/apps/monitoring/`
+### `roles/master/monitoring/`
 
 - `kustomization.yaml` groups the namespace, chart source, and release.
 - `namespace.yaml` creates the shared `monitoring` namespace.
@@ -69,7 +69,7 @@ stack reuses that namespace. If Kuma is reconciled by a separate controller,
 keep one controller responsible for the Namespace object to avoid ownership
 conflicts; the services themselves can share the namespace.
 
-### `roles/master/apps/monitoring-demo/`
+### `roles/master/monitoring/monitoring-demo/`
 
 - `kustomization.yaml` groups the app and its monitoring resources.
 - `namespace.yaml` keeps this test app and its alerting objects separate from

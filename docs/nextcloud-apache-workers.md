@@ -10,7 +10,7 @@ Apply the Nextcloud Kustomize directory from the repository checkout that has
 the local `secret.yaml`:
 
 ```sh
-kubectl apply -k roles/master/apps/nas/nextcloud
+kubectl apply -k roles/master/files/nextcloud
 kubectl -n nextcloud rollout status deployment/nextcloud
 kubectl -n nextcloud exec deployment/nextcloud -- apachectl -t
 kubectl -n nextcloud exec deployment/nextcloud -- apachectl -t -D DUMP_RUN_CFG

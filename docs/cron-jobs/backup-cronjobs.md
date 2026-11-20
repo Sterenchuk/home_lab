@@ -1,7 +1,7 @@
 # Backup CronJobs
 
 This page explains the scheduled backup jobs in
-[`roles/master/corn-jobs/backups/`](../roles/master/corn-jobs/backups/). The
+[`roles/master/cron-jobs/backups/`](../roles/master/cron-jobs/backups/). The
 YAML manifests are the source of truth; check them when changing this document.
 
 ## What a Kubernetes CronJob does
@@ -43,7 +43,7 @@ and failed Jobs for inspection.
 ## How the database scripts work
 
 The two database CronJobs are in
-[`psql-backups.yaml`](../roles/master/corn-jobs/backups/psql-backups.yaml).
+[`psql-backups.yaml`](../roles/master/cron-jobs/backups/psql-backups.yaml).
 Their pods connect to the database Services using `PGHOST`, `PGPORT`, and
 `PGUSER`. `PGPASSWORD` is read from a Kubernetes Secret; the password itself
 is not stored in this manifest. The backup volume is mounted at `/backup`.
@@ -85,8 +85,8 @@ provide point-in-time recovery between daily runs.
 
 ## How the file copy scripts work
 
-The file CronJobs are in [`owncloud-files.yaml`](../roles/master/corn-jobs/backups/owncloud-files.yaml)
-and [`immich-photos.yaml`](../roles/master/corn-jobs/backups/immich-photos.yaml).
+The file CronJobs are in [`owncloud-files.yaml`](../roles/master/cron-jobs/backups/owncloud-files.yaml)
+and [`immich-photos.yaml`](../roles/master/cron-jobs/backups/immich-photos.yaml).
 They use the `alpine:3` image, install `rsync` at startup, and mount the source
 NFS export read-only. The destination is the backup disk mounted at `/backup`.
 

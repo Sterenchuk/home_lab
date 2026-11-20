@@ -29,8 +29,9 @@ Flux watches this repository and applies the Kubernetes configuration under
 `clusters/homelab/` and `roles/master/`. Kubernetes then runs the application
 workloads as pods, gives them stable in-cluster Services, and attaches
 persistent storage where configured. The app manifests are grouped under
-`roles/master/apps/`; that path contains the resources that create and manage
-pods rather than a separate directory of individual pod definitions.
+`roles/master/`, split by category (`apps/`, `files/`, `db/`, `monitoring/`,
+`ai/`, `backend/`); those directories contain the resources that create and
+manage pods rather than a separate directory of individual pod definitions.
 
 For services configured for external access, Cloudflare sends requests through
 the outbound Tunnel to Traefik. Traefik uses each app's Ingress hostname to

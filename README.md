@@ -18,15 +18,19 @@ running. This lab is where I am continuing to build those skills.
 ## What is in the lab
 
 - **Cluster:** one k3s server and two agents on physical machines.
-- **Networking and access:** Tailscale connects the nodes; Cloudflare Tunnel
+- **Networking and access:** Tailscale connects the nodes(will move all ips to LAN); Cloudflare Tunnel
   provides external access to selected services.
 - **GitOps:** Flux reconciles cluster configuration from this repository.
-- **Applications (“pods”):** app manifests live under
-  [`roles/master/apps/`](roles/master/apps/). This includes services such as
-  Immich, Nextcloud, Homepage, and the reminder app, plus the monitoring
-  stack. The directory name is historical: it contains Kubernetes resources
-  such as Deployments, Services, and PersistentVolumeClaims, which create and
-  manage pods.
+- **Applications (“pods”):** app manifests live under `roles/master/`, split
+  by category: [`files/`](roles/master/files/) (Immich, Nextcloud, ownCloud),
+  [`db/`](roles/master/db/) (Postgres), [`monitoring/`](roles/master/monitoring/)
+  (the monitoring stack and its config/demo), [`ai/`](roles/master/ai/)
+  (Ollama + Open WebUI), [`backend/`](roles/master/backend/) (the shop app,
+  placeholder), and [`apps/`](roles/master/apps/) as a catch-all for
+  everything else (Homepage, code-server, Uptime Kuma, the reminder app,
+  the system-upgrade controller). Each category directory contains the
+  Kubernetes resources — Deployments, Services, PersistentVolumeClaims —
+  that create and manage that app's pods.
 - **Machine setup:** common setup scripts and per-machine-role scripts live in
   [`scripts/`](scripts/) and [`roles/`](roles/).
 
@@ -60,11 +64,16 @@ single control-plane node, so it is not highly available.
 ```text
 clusters/homelab/               Flux cluster entry point and reconciliation
 docs/                           Architecture, setup, and operations notes
-roles/master/apps/              Kubernetes manifests for applications
+roles/master/apps/              Misc app manifests (Homepage, code-server, Uptime Kuma, reminder, ...)
+roles/master/files/             File-storage app manifests (Immich, Nextcloud, ownCloud)
+roles/master/db/                Database manifests (Postgres)
+roles/master/monitoring/        Monitoring stack, config, and demo app
+roles/master/ai/                AI app manifests (Ollama, Open WebUI)
+roles/master/backend/           Backend app manifests (shop, placeholder)
 roles/master/ingress/           Cluster ingress resources
 roles/nodes/                    Setup for individual machine roles
 scripts/common/                 Shared machine setup scripts
-roles/master/corn-jobs/backups/ Kubernetes CronJobs for database and file backups
+roles/master/cron-jobs/backups/ Kubernetes CronJobs for database and file backups
 ```
 
 Machine setup scripts are still being organized. The shared baseline is
